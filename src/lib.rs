@@ -5,10 +5,25 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(version = "0.1.0", about = "Head implemented in Rust", long_about = "Long about", author = "Izak Hudnik Zajec <hudnik.izak@gmail.com>")]
 struct Cli {
+    #[arg(
+        name = "File name"
+        )]
     filename: String,
 
-    #[arg(short, long, default_value_t = 10)]
+    #[arg(
+        short = 'n',
+        long,
+        default_value_t = 10,
+        help = "Specify how many lines we should print (+) or how many final lines should be cut (-)."
+        )]
     lines: i32,
+
+    #[arg(
+        short = 'c',
+        long = "bytes",
+        required = false,
+        )]
+    bytes: Option<u32>,
 }
 
 fn open_file(filename: &str) -> Result<Box< dyn BufRead>, Box<dyn Error>> {
@@ -18,36 +33,62 @@ fn open_file(filename: &str) -> Result<Box< dyn BufRead>, Box<dyn Error>> {
     }
 }
 
-pub fn run() {
-    let cli = Cli::parse();
-
-    let file_lines = open_file(&cli.filename).unwrap().lines().enumerate();
-    let mut lines_count = 0;
-
+fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
+    
     let mut final_line_index : i32 = 0;
-    let mut final_lines : Vec<String> = vec![];
-
-    // Count the lines from the Buffer
-    for (line_num,  line) in file_lines {
-        lines_count = line_num;
-        final_lines.push(line.unwrap());
-    }
-
     // Calculate the last line number based on the specified lines arg
-    if cli.lines < 0 {
-        final_line_index = lines_count.try_into().unwrap();
-        final_line_index = final_line_index + cli.lines + 1;
+    if lines_num < 0 {
+        final_line_index = lines_vec.len().try_into().unwrap();
+        final_line_index = final_line_index + lines_num;
     } else {
-        final_line_index = cli.lines;
+        final_line_index = lines_num;
     }
- 
+
     // Print the appropriate number of lines
     let mut line_num = 1;
-    for line in final_lines {
+    for line in lines_vec {
         if line_num > final_line_index {
             break;
         }
         println!("{}", line);
         line_num = line_num + 1;
+    }
+}
+
+fn print_bytes(lines_vec: Vec<String>, bytes_num: u32) {
+    let mut count = 1;
+
+    for line in lines_vec {
+        if count > bytes_num {
+            break;
+        }
+        for chars in line.chars() {
+            if count > bytes_num {
+                break;
+            }
+            print!("{}", chars);
+            count = count + 1;
+        }
+        print!("\n");
+        count = count + 1;
+    }
+}
+
+pub fn run() {
+    let cli = Cli::parse();
+
+    let file_lines = open_file(&cli.filename).unwrap().lines().enumerate();
+
+    let mut final_lines : Vec<String> = vec![];
+
+    // Count the lines from the Buffer
+    for (line_num,  line) in file_lines {
+        final_lines.push(line.unwrap());
+    }
+
+    if let Some(bytes_num) = cli.bytes {
+        print_bytes(final_lines, bytes_num);
+    } else {
+        print_lines(final_lines, cli.lines);
     }
 }
