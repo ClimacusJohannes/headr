@@ -2,8 +2,47 @@ use std::{error::Error, io::{self, BufRead, BufReader}};
 use std::fs::File;
 use clap::Parser;
 
+pub fn get_styles() -> clap::builder::Styles {
+    clap::builder::Styles::styled()
+        .usage(
+            anstyle::Style::new()
+                .bold()
+                .underline()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+        )
+        .header(
+            anstyle::Style::new()
+                .bold()
+                .underline()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+        )
+        .literal(
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
+        )
+        .invalid(
+            anstyle::Style::new()
+                .bold()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
+        )
+        .error(
+            anstyle::Style::new()
+                .bold()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
+        )
+        .valid(
+            anstyle::Style::new()
+                .bold()
+                .underline()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
+        )
+        .placeholder(
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::White))),
+        )
+}
+
+
 #[derive(Parser)]
-#[command(version = "0.1.0", about = "Head implemented in Rust", long_about = "Long about", author = "Izak Hudnik Zajec <hudnik.izak@gmail.com>")]
+#[command(version = "0.1.0", about = "Head implemented in Rust", long_about = "Long about", author = "Izak Hudnik Zajec <hudnik.izak@gmail.com>", styles=get_styles())]
 struct Cli {
     #[arg(
         name = "File name"
@@ -14,7 +53,7 @@ struct Cli {
         short = 'n',
         long,
         default_value_t = 10,
-        help = "Specify how many lines we should print (+) or how many final lines should be cut (-)."
+        help = "Specify how many lines we should print (+) or how many lines should be cut from the end (-)."
         )]
     lines: i32,
 
@@ -22,6 +61,7 @@ struct Cli {
         short = 'c',
         long = "bytes",
         required = false,
+        help = "Specify how many bytes we should print (+) or how many bytes should be cut from the end (-)."
         )]
     bytes: Option<u32>,
 }
