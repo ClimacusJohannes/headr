@@ -27,22 +27,21 @@ pub fn run() {
     let mut final_line_index : i32 = 0;
     let mut final_lines : Vec<String> = vec![];
 
+    // Count the lines from the Buffer
     for (line_num,  line) in file_lines {
         lines_count = line_num;
         final_lines.push(line.unwrap());
     }
 
-    println!("Final line index of whole file: {:?}", lines_count);
-
+    // Calculate the last line number based on the specified lines arg
     if cli.lines < 0 {
         final_line_index = lines_count.try_into().unwrap();
         final_line_index = final_line_index + cli.lines + 1;
     } else {
-        final_line_index = cli.lines; 
+        final_line_index = cli.lines;
     }
-
-    println!("Stopping at line {:}", final_line_index);
-
+ 
+    // Print the appropriate number of lines
     let mut line_num = 1;
     for line in final_lines {
         if line_num > final_line_index {
