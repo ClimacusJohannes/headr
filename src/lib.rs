@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::format, io::{self, BufRead, BufReader}};
+use std::{error::Error, io::{self, BufRead, BufReader}};
 use std::fs::File;
 use clap::Parser;
 
@@ -33,9 +33,8 @@ fn open_file(filename: &str) -> Result<Box< dyn BufRead>, Box<dyn Error>> {
     }
 }
 
-fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
-    
-    let mut final_line_index : i32 = 0;
+fn print_lines(lines_vec: Vec<String>, lines_num: i32) { 
+    let mut final_line_index : i32;
     // Calculate the last line number based on the specified lines arg
     if lines_num < 0 {
         final_line_index = lines_vec.len().try_into().unwrap();
@@ -77,12 +76,12 @@ fn print_bytes(lines_vec: Vec<String>, bytes_num: u32) {
 pub fn run() {
     let cli = Cli::parse();
 
-    let file_lines = open_file(&cli.filename).unwrap().lines().enumerate();
+    let file_lines = open_file(&cli.filename).unwrap().lines();
 
     let mut final_lines : Vec<String> = vec![];
 
     // Count the lines from the Buffer
-    for (line_num,  line) in file_lines {
+    for line in file_lines {
         final_lines.push(line.unwrap());
     }
 
