@@ -3,6 +3,7 @@ use std::{error::Error, fmt::write, io::{self, BufRead, BufReader}, str::Bytes};
 use std::fs::File;
 use clap::Parser;
 use crate::styles::get_styles;
+use colored::Colorize;
 
 pub mod styles;
 
@@ -49,9 +50,9 @@ fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
     } else {
         final_line_index = lines_num;
     }
-    
+
     if final_line_index < 0 {
-        eprintln!("Incorect index");
+        eprintln!("{} ({:?}) The file has only {:?} lines", "Error: negative index!".red(), final_line_index, lines_vec.len());
     } else {
         // Print the appropriate number of lines
         if final_line_index > lines_vec.len().try_into().unwrap() {
@@ -80,7 +81,7 @@ fn print_bytes(byte_vec: Vec<u8>, bytes_num: i32) {
 
     // panic if the index is not correct
     if final_byte_index < 0 {
-        eprintln!("Incorect index");
+        eprintln!("{} ({:?}) The file has only {:?} bytes", "Error: negative index!".red(), final_byte_index, byte_vec.len());
     } else {
         if final_byte_index + 1 > (byte_vec.len()).try_into().unwrap() {
             final_byte_index = (byte_vec.len()).try_into().unwrap();
@@ -103,17 +104,19 @@ fn read_and_print(cli: &Cli, reader: &mut Box<dyn BufRead>) {
     let mut final_chars : Vec<u8> = vec![];
 
     // Count the lines from the Buffer
-    for _ in 0..cli.lines {
+    while true {
         let mut line: String = "".to_string();
         match reader.read_line(&mut line) {
-            Err(_) => {},
-            Ok(_) => {
+            // When we reach the end of buffer.
+            Ok(0) => { break },
+            Ok(c) => {
                 let unwraped_line = line.clone();
                 final_lines.push(unwraped_line.clone());
                 for char in unwraped_line.clone().bytes() {
                     final_chars.push(char);
                 }
-            }
+            },
+            Err(err) => { eprintln!("An error occured: {:?}", err); },
         }
     }
 
@@ -132,7 +135,7 @@ pub fn run() {
             Ok(mut reader) => {
                 if *&cli.files.len() > 1 {
                     if n > 0 {println!();}
-                    println!("==> {} <==", filename);
+                    println!("{} {} {}", "==>".green(), filename.green(), "<==".green());
                 }
                 read_and_print(&cli, &mut reader);
             }
