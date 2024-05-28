@@ -11,7 +11,7 @@ struct Cli {
     #[arg(
         name = "File name"
         )]
-    filename: String,
+    files: Vec<String>,
 
     #[arg(
         short = 'n',
@@ -79,13 +79,8 @@ fn print_bytes(byte_vec: Vec<char>, bytes_num: i32) {
     }
 }
 
-pub fn run() {
-    let cli = Cli::parse();
-
-    match open_file(&cli.filename) {
-        Err(err) => eprint!("Failed to open file: '{}' - {}", &cli.filename, err),
-        Ok(reader) => {
-            let mut final_lines : Vec<String> = vec![];
+fn read_and_print(cli: &Cli, reader: Box<dyn BufRead>) { 
+    let mut final_lines : Vec<String> = vec![];
             let mut final_chars : Vec<char> = vec![];
 
             // Count the lines from the Buffer
@@ -97,12 +92,25 @@ pub fn run() {
                 }
                 final_chars.push('\n');
             }
+
             if let Some(bytes_num) = cli.bytes {
                 print_bytes(final_chars, bytes_num);
             } else {
                 print_lines(final_lines, cli.lines);
             }
+} 
+
+pub fn run() {
+    let cli = Cli::parse();
+    for filename in &cli.files {
+        match open_file(filename) {
+            Err(err) => eprintln!("Failed to open file: '{}' - {}", filename, err),
+            Ok(reader) => {
+                if *&cli.files.len() > 1 {
+                    println!("\n==> {} <==", filename);
+                }
+                read_and_print(&cli, reader);
+            }
         }
     }
-
 }
