@@ -49,15 +49,22 @@ fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
     } else {
         final_line_index = lines_num;
     }
-
-    // Print the appropriate number of lines
-    let mut line_num = 1;
-    for line in lines_vec {
-        if line_num > final_line_index {
-            break;
+    
+    if final_line_index < 0 {
+        eprintln!("Incorect index");
+    } else {
+        // Print the appropriate number of lines
+        if final_line_index > lines_vec.len().try_into().unwrap() {
+            final_line_index = lines_vec.len().try_into().unwrap();
         }
-        println!("{}", line);
-        line_num = line_num + 1;
+        let mut line_num = 1;
+        for line in lines_vec {
+            if line_num > final_line_index {
+                break;
+            }
+            print!("{}", line);
+            line_num = line_num + 1;
+        }
     }
 }
 
@@ -72,9 +79,12 @@ fn print_bytes(byte_vec: Vec<u8>, bytes_num: i32) {
     }
 
     // panic if the index is not correct
-    if final_byte_index < 0 || final_byte_index + 1 > (byte_vec.len()).try_into().unwrap() {
+    if final_byte_index < 0 {
         eprintln!("Incorect index");
     } else {
+        if final_byte_index + 1 > (byte_vec.len()).try_into().unwrap() {
+            final_byte_index = (byte_vec.len()).try_into().unwrap();
+        }
 
         let mut buffer : Vec<u8> = vec![0; final_byte_index.try_into().unwrap()];
         let mut i : usize = 0;
@@ -88,18 +98,23 @@ fn print_bytes(byte_vec: Vec<u8>, bytes_num: i32) {
     }
 }
 
-fn read_and_print(cli: &Cli, reader: Box<dyn BufRead>) {
+fn read_and_print(cli: &Cli, reader: &mut Box<dyn BufRead>) {
     let mut final_lines : Vec<String> = vec![];
     let mut final_chars : Vec<u8> = vec![];
 
     // Count the lines from the Buffer
-    for line in reader.lines() {
-        let unwraped_line = line.unwrap();
-        final_lines.push(unwraped_line.clone());
-        for char in unwraped_line.clone().bytes() {
-            final_chars.push(char);
+    for _ in 0..cli.lines {
+        let mut line: String = "".to_string();
+        match reader.read_line(&mut line) {
+            Err(_) => {},
+            Ok(_) => {
+                let unwraped_line = line.clone();
+                final_lines.push(unwraped_line.clone());
+                for char in unwraped_line.clone().bytes() {
+                    final_chars.push(char);
+                }
+            }
         }
-        final_chars.push('\n'.try_into().unwrap());
     }
 
     if let Some(bytes_num) = cli.bytes {
@@ -113,13 +128,13 @@ pub fn run() {
     let cli = Cli::parse();
     for (n, filename) in cli.files.clone().into_iter().enumerate() {
         match open_file(&filename) {
-            Err(err) => eprintln!("Failed to open file: '{}' - {}", filename, err),
-            Ok(reader) => {
+            Err(err) => eprintln!("{}: .* {}", filename, err),
+            Ok(mut reader) => {
                 if *&cli.files.len() > 1 {
                     if n > 0 {println!();}
                     println!("==> {} <==", filename);
                 }
-                read_and_print(&cli, reader);
+                read_and_print(&cli, &mut reader);
             }
         }
     }
