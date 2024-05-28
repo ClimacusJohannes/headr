@@ -17,7 +17,7 @@ struct Cli {
         short = 'n',
         long,
         default_value_t = 10,
-        help = "Specify how many lines we should print (+) or how many lines should be cut from the end (-)."
+        help = "DEFAUL OPTION.\nSpecify how many lines we should print (+) or how many lines should be cut from the end (-)."
         )]
     lines: i32,
 
