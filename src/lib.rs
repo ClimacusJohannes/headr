@@ -27,7 +27,7 @@ struct Cli {
         required = false,
         help = "Specify how many bytes we should print (+) or how many bytes should be cut from the end (-)."
         )]
-    bytes: Option<u32>,
+    bytes: Option<i32>,
 }
 
 fn open_file(filename: &str) -> Result<Box< dyn BufRead>, Box<dyn Error>> {
@@ -58,21 +58,23 @@ fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
     }
 }
 
-fn print_bytes(lines_vec: Vec<String>, bytes_num: u32) {
+fn print_bytes(byte_vec: Vec<char>, bytes_num: i32) {
+    let mut final_byte_index : i32;
+    // Calculate the last line number based on the specified lines arg
+    if bytes_num < 0 {
+        final_byte_index = byte_vec.len().try_into().unwrap();
+        final_byte_index = final_byte_index + bytes_num;
+    } else {
+        final_byte_index = bytes_num;
+    }
+
     let mut count = 1;
 
-    for line in lines_vec {
-        if count > bytes_num {
+    for char in byte_vec {
+        if count > final_byte_index {
             break;
         }
-        for chars in line.chars() {
-            if count > bytes_num {
-                break;
-            }
-            print!("{}", chars);
-            count = count + 1;
-        }
-        print!("\n");
+        print!("{}", char);
         count = count + 1;
     }
 }
@@ -84,13 +86,19 @@ pub fn run() {
         Err(err) => eprint!("Failed to open file: '{}' - {}", &cli.filename, err),
         Ok(reader) => {
             let mut final_lines : Vec<String> = vec![];
+            let mut final_chars : Vec<char> = vec![];
 
             // Count the lines from the Buffer
             for line in reader.lines() {
-                final_lines.push(line.unwrap());
+                let unwraped_line = line.unwrap();
+                final_lines.push(unwraped_line.clone());
+                for char in unwraped_line.clone().chars() {
+                    final_chars.push(char);
+                }
+                final_chars.push('\n');
             }
             if let Some(bytes_num) = cli.bytes {
-                print_bytes(final_lines, bytes_num);
+                print_bytes(final_chars, bytes_num);
             } else {
                 print_lines(final_lines, cli.lines);
             }
