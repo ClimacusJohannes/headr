@@ -1,4 +1,5 @@
-use std::{error::Error, io::{self, BufRead, BufReader}};
+use core::panic;
+use std::{error::Error, fmt::write, io::{self, BufRead, BufReader}, str::Bytes};
 use std::fs::File;
 use clap::Parser;
 use crate::styles::get_styles;
@@ -9,7 +10,8 @@ pub mod styles;
 #[command(version = "0.1.0", about = "Head implemented in Rust", long_about = "Long about", author = "Izak Hudnik Zajec <hudnik.izak@gmail.com>", styles=get_styles())]
 struct Cli {
     #[arg(
-        name = "File name"
+        name = "File name",
+        default_values_t = vec!["-".to_owned()],
         )]
     files: Vec<String>,
 
@@ -24,6 +26,7 @@ struct Cli {
     #[arg(
         short = 'c',
         long = "bytes",
+        conflicts_with = "lines",
         required = false,
         help = "Specify how many bytes we should print (+) or how many bytes should be cut from the end (-)."
         )]
@@ -58,7 +61,7 @@ fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
     }
 }
 
-fn print_bytes(byte_vec: Vec<char>, bytes_num: i32) {
+fn print_bytes(byte_vec: Vec<u8>, bytes_num: i32) {
     let mut final_byte_index : i32;
     // Calculate the last line number based on the specified lines arg
     if bytes_num < 0 {
@@ -68,46 +71,53 @@ fn print_bytes(byte_vec: Vec<char>, bytes_num: i32) {
         final_byte_index = bytes_num;
     }
 
-    let mut count = 1;
+    // panic if the index is not correct
+    if final_byte_index < 0 || final_byte_index + 1 > (byte_vec.len()).try_into().unwrap() {
+        eprintln!("Incorect index");
+    } else {
 
-    for char in byte_vec {
-        if count > final_byte_index {
-            break;
+        let mut buffer : Vec<u8> = vec![0; final_byte_index.try_into().unwrap()];
+        let mut i : usize = 0;
+        for _ in &buffer.clone() {
+            buffer[i] = byte_vec[i];
+            i = i + 1;
         }
-        print!("{}", char);
-        count = count + 1;
+        let mut count = 1;
+
+        print!("{}", String::from_utf8_lossy(&buffer).to_owned());
     }
 }
 
-fn read_and_print(cli: &Cli, reader: Box<dyn BufRead>) { 
+fn read_and_print(cli: &Cli, reader: Box<dyn BufRead>) {
     let mut final_lines : Vec<String> = vec![];
-            let mut final_chars : Vec<char> = vec![];
+    let mut final_chars : Vec<u8> = vec![];
 
-            // Count the lines from the Buffer
-            for line in reader.lines() {
-                let unwraped_line = line.unwrap();
-                final_lines.push(unwraped_line.clone());
-                for char in unwraped_line.clone().chars() {
-                    final_chars.push(char);
-                }
-                final_chars.push('\n');
-            }
+    // Count the lines from the Buffer
+    for line in reader.lines() {
+        let unwraped_line = line.unwrap();
+        final_lines.push(unwraped_line.clone());
+        for char in unwraped_line.clone().bytes() {
+            final_chars.push(char);
+        }
+        final_chars.push('\n'.try_into().unwrap());
+    }
 
-            if let Some(bytes_num) = cli.bytes {
-                print_bytes(final_chars, bytes_num);
-            } else {
-                print_lines(final_lines, cli.lines);
-            }
-} 
+    if let Some(bytes_num) = cli.bytes {
+        print_bytes(final_chars, bytes_num);
+    } else {
+        print_lines(final_lines, cli.lines);
+    }
+}
 
 pub fn run() {
     let cli = Cli::parse();
-    for filename in &cli.files {
-        match open_file(filename) {
+    for (n, filename) in cli.files.clone().into_iter().enumerate() {
+        match open_file(&filename) {
             Err(err) => eprintln!("Failed to open file: '{}' - {}", filename, err),
             Ok(reader) => {
                 if *&cli.files.len() > 1 {
-                    println!("\n==> {} <==", filename);
+                    if n > 0 {println!();}
+                    println!("==> {} <==", filename);
                 }
                 read_and_print(&cli, reader);
             }
