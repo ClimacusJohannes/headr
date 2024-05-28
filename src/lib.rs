@@ -1,45 +1,9 @@
 use std::{error::Error, io::{self, BufRead, BufReader}};
 use std::fs::File;
 use clap::Parser;
+use crate::styles::get_styles;
 
-pub fn get_styles() -> clap::builder::Styles {
-    clap::builder::Styles::styled()
-        .usage(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
-        )
-        .header(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
-        )
-        .literal(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .invalid(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
-        )
-        .error(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
-        )
-        .valid(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .placeholder(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::White))),
-        )
-}
-
+pub mod styles;
 
 #[derive(Parser)]
 #[command(version = "0.1.0", about = "Head implemented in Rust", long_about = "Long about", author = "Izak Hudnik Zajec <hudnik.izak@gmail.com>", styles=get_styles())]
@@ -73,7 +37,7 @@ fn open_file(filename: &str) -> Result<Box< dyn BufRead>, Box<dyn Error>> {
     }
 }
 
-fn print_lines(lines_vec: Vec<String>, lines_num: i32) { 
+fn print_lines(lines_vec: Vec<String>, lines_num: i32) {
     let mut final_line_index : i32;
     // Calculate the last line number based on the specified lines arg
     if lines_num < 0 {
@@ -116,18 +80,21 @@ fn print_bytes(lines_vec: Vec<String>, bytes_num: u32) {
 pub fn run() {
     let cli = Cli::parse();
 
-    let file_lines = open_file(&cli.filename).unwrap().lines();
+    match open_file(&cli.filename) {
+        Err(err) => eprint!("Failed to open file: '{}' - {}", &cli.filename, err),
+        Ok(reader) => {
+            let mut final_lines : Vec<String> = vec![];
 
-    let mut final_lines : Vec<String> = vec![];
-
-    // Count the lines from the Buffer
-    for line in file_lines {
-        final_lines.push(line.unwrap());
+            // Count the lines from the Buffer
+            for line in reader.lines() {
+                final_lines.push(line.unwrap());
+            }
+            if let Some(bytes_num) = cli.bytes {
+                print_bytes(final_lines, bytes_num);
+            } else {
+                print_lines(final_lines, cli.lines);
+            }
+        }
     }
 
-    if let Some(bytes_num) = cli.bytes {
-        print_bytes(final_lines, bytes_num);
-    } else {
-        print_lines(final_lines, cli.lines);
-    }
 }
